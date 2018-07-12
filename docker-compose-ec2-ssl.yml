@@ -29,7 +29,7 @@ services:
     volumes:
       - ../wexam-server/wexam:/usr/src/app
     environment:
-      - RUN_ENV=uniovi-redis-docker
+      - RUN_ENV=default.yml
       - DATABASE_URL=postgres://postgres:miclavesecreta@wexam-db/wexam
       - API_MOUNT_PATH=/wexam-api
     depends_on:

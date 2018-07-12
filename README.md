@@ -53,6 +53,8 @@ Si se dispone de una instancia más potente (ej: t2.medium) o de un servidor pro
 
 Edita `docker-compose.yml` y cambia `miclavesecreta` por otra cosa. Será la clave root de la base de datos. No hagas commit de ese cambio pues entonces la clave sería visible en el repositorio.
 
+Edita `../wexam-server/wexam/settings/default.yml` y configura el usuario y contraseña de gmail que usará wexam-server para enviar correos a los usuarios, así como el token secreto para JWT, y si lo estimas necesario el tiempo de caducidad de los token JWT.
+
 Los siguientes comandos crearán las imágenes Docker (la primera vez puede llevar un tiempo ya que tiene que descargarse de internet muchas bibliotecas), y arrancarán todos los servicios en el orden apropiado.
 
 ```
@@ -79,7 +81,7 @@ Puedes ver los logs de los diferentes contenedores con `docker-compose logs`
 La base de datos comienza sin usuarios. Puedes crear el primero (que será el administrador) mediante el comando:
 
 ```
-docker-compose exec wexam-server bash -c "RUN_ENV=uniovi-redis-docker \
+docker-compose exec wexam-server bash -c "RUN_ENV=default.yml \
                                  WEXAM_ADMIN_EMAIL=correo@del.admin.com \
                                  WEXAM_ADMIN_PASSWORD=laclavedeladmin \
                                  python seed_admin.py"
