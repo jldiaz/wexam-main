@@ -1,0 +1,96 @@
+version: '2.1'
+
+services:
+
+  wexam-db:
+    container_name: wexam-db
+    image: wexam-db-image:latest
+    build:
+      context: ../wexam-server/db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=miclavesecreta
+    volumes:
+      - /var/postgres/data:/var/lib/postgresql/data
+    healthcheck:
+      test: exit 0
+
+  wexam-redis:
+    container_name: wexam-redis
+    image: redis:latest
+    healthcheck:
+      test: exit 0
+
+  wexam-server:
+    container_name: wexam-server
+    image: wexam-server-image:latest
+    build:
+      context: ../wexam-server/wexam
+    volumes:
+      - ../wexam-server/wexam:/usr/src/app
+    environment:
+      - RUN_ENV=uniovi-redis-docker
+      - DATABASE_URL=postgres://postgres:miclavesecreta@wexam-db/wexam
+      - API_MOUNT_PATH=/wexam-api
+    depends_on:
+      wexam-redis:
+        condition: service_healthy
+      wexam-db:
+        condition: service_healthy
+    healthcheck:
+      test: exit 0
+    links:
+      - wexam-db
+      - wexam-redis
+
+# Descomentar el bloque siguiente si se quiere desplegar el servicio wexam-pdf en esta misma máquina
+# NOTA: En una instancia t2.micro de Amazon, la imagen de este contenedor ya no cabe, por eso se
+# ha dejado comentado.
+#
+#   wexam-pdf:
+#     container_name: wexam-pdf
+#     image: latex-online:latest
+#     build:
+#       context: ../latex-online
+#     healthcheck:
+#       test: exit 0
+
+  wexam-latex:
+    container_name: wexam-latex
+    image: wexam-latex-image:latest
+    build:
+      context: ../wexam-latex
+    volumes:
+      - '../wexam-latex:/usr/src/app'
+    environment:
+      - REDIS_URL=redis://wexam-redis
+        # La línea siguiente debe cambiarse a
+        # - LATEX_ONLINE_URL=http://wexam-pdf:2700/
+        # en caso de que se haya desplegado localmente este servicio
+      - LATEX_ONLINE_URL=https://latexonline.cc/
+    links:
+      - wexam-redis
+      # Descomentar la línea siguiente si se ha desplegado localmente el servicio wexam-pdf
+      # - wexam-pdf
+    depends_on:
+      wexam-redis:
+        condition: service_healthy
+      # wexam-pdf:
+      #   condition: service_healthy
+
+  nginx:
+    container_name: nginx
+    build: ./nginx/
+    # restart: always
+    volumes:
+      - ../wexam-angular:/var/www/html
+      - /etc/letsencrypt/:/etc/letsencrypt/
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      wexam-server:
+        condition: service_healthy
+    links:
+      - wexam-server
+    command: [nginx-debug, '-g', 'daemon off;']
